@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Bếp Than Tổ Ong</title>
+    <style>
+        :root {
+            --bg-color: #1e1e2e;
+            --card-bg: #2b2b3d;
+            --text-color: #e0e0e0;
+            --accent-orange: #ff7675;
+            --accent-blue: #74b9ff;
+            --accent-green: #55efc4;
+            --border-color: #44445a;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 12px;
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--accent-orange);
+            font-size: 20px;
+            margin-top: 5px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-weight: bold;
+            font-size: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            margin-top: 8px;
+            font-size: 13px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: #181825;
+            color: white;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        button {
+            background-color: #0984e3;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button.btn-danger {
+            background-color: #d63031;
+        }
+
+        button.btn-success {
+            background-color: #00b894;
+        }
+
+        .status-box {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .status-highlight {
+            color: var(--accent-orange);
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .history-list {
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+            background: #181825;
+            padding: 6px;
+            border-radius: 4px;
+        }
+
+        .history-item {
+            padding: 4px;
+            border-bottom: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>🔥 BẾP THAN TỔ ONG (WEB APP)</h2>
+
+    <!-- TRẠNG THÁI HIỆN TẠI -->
+    <div class="card">
+        <div class="card-title">📊 TRẠNG THÁI VẬN HÀNH</div>
+        <div class="status-box">
+            <div>Chế độ: <span id="lbl_che_do" style="color: var(--accent-orange); font-weight: bold;">Đun To</span></div>
+            <div>Tiến trình: <span id="lbl_tien_trinh">0%</span></div>
+            <div>Sôi ấm tiếp: <span id="lbl_soi_tiep" style="color: var(--accent-blue);">-- phút</span></div>
+            <div class="status-highlight" id="lbl_canh_bao">📌 Chưa nhóm bếp</div>
+        </div>
+    </div>
+
+    <!-- QUẢN LÝ NHÓM THAN -->
+    <div class="card">
+        <div class="card-title">🔥 QUẢN LÝ NHÓM THAN</div>
+        <label>Giờ bắt đầu nhóm (để trống = hiện tại):</label>
+        <input type="time" id="inp_gio_nhom">
+        <button class="btn-success" onclick="nhomThanMoi()">🔥 BẮT ĐẦU NHÓM THAN MỚI</button>
+        <button class="btn-danger" onclick="ketThucThan()">⛽ KẾT THÚC VIÊN THAN</button>
+    </div>
+
+    <!-- CHUYỂN ĐỔI ĐUN TO / NHỎ -->
+    <div class="card">
+        <div class="card-title">🎛️ THAY ĐỔI CHẾ ĐỘ ĐUN</div>
+        <div style="display: flex; gap: 8px;">
+            <button onclick="setCheDo('dun_to')" style="background-color: #e17055;">🔥 ĐUN TO</button>
+            <button onclick="setCheDo('dun_nho')" style="background-color: #0984e3;">💧 ĐUN NHỎ</button>
+        </div>
+    </div>
+
+    <!-- HẸN GIỜ ĐUN -->
+    <div class="card">
+        <div class="card-title">📝 HẸN GIỜ ĐUN NƯỚC</div>
+        <label>Tên việc:</label>
+        <input type="text" id="inp_ten_viec" value="Nước chín sôi 5L">
+        
+        <label>Số phút đun:</label>
+        <input type="number" id="inp_phut_dun" value="30">
+        
+        <button onclick="themCongViec()">💾 GHI NHẬN CÔNG VIỆC</button>
+    </div>
+
+    <!-- LỊCH SỬ -->
+    <div class="card">
+        <div class="card-title">📋 LỊCH SỬ VIÊN THAN</div>
+        <div class="history-list" id="div_lich_su">
+            <i>Chưa có dữ liệu lịch sử.</i>
+        </div>
+    </div>
+
+    <script>
+        let cauHinh = {
+            phut_nhom: 22,
+            vong_doi_to: 96,
+            vong_doi_nho: 780,
+            phut_to_1: 30,
+            phut_nho_1: 127
+        };
+
+        let trangThai = {
+            vien_stt: 0,
+            che_do: "dun_to",
+            bat_dau_nhom: null,
+            t1_tich_luy: 0,
+            t2_tich_luy: 0,
+            da_ben: false
+        };
+
+        let dsLichSu = [];
+
+        function setCheDo(cd) {
+            trangThai.che_do = cd;
+            document.getElementById("lbl_che_do").innerText = cd === "dun_to" ? "Đun To" : "Đun Nhỏ";
+            capNhatGiaoDien();
+        }
+
+        function nhomThanMoi() {
+            let gioNhap = document.getElementById("inp_gio_nhom").value;
+            let now = new Date();
+            
+            if (gioNhap) {
+                let parts = gioNhap.split(":");
+                now.setHours(parseInt(parts[0]), parseInt(parts[1]), 0);
+            }
+
+            trangThai.vien_stt += 1;
+            trangThai.bat_dau_nhom = now;
+            trangThai.t1_tich_luy = 0;
+            trangThai.t2_tich_luy = 0;
+            trangThai.da_ben = false;
+
+            capNhatGiaoDien();
+        }
+
+        function ketThucThan() {
+            if (trangThai.vien_stt === 0) return;
+            
+            let tongPhut = trangThai.t1_tich_luy + trangThai.t2_tich_luy;
+            dsLichSu.unshift(`Viên #${trangThai.vien_stt}: Dùng ${tongPhut.toFixed(1)} phút (To: ${trangThai.t1_tich_luy}p, Nhỏ: ${trangThai.t2_tich_luy}p)`);
+            
+            trangThai.vien_stt = 0;
+            trangThai.bat_dau_nhom = null;
+            capNhatGiaoDien();
+        }
+
+        function themCongViec() {
+            if (trangThai.vien_stt === 0) {
+                alert("Vui lòng bấm Nhóm than trước!");
+                return;
+            }
+            let ten = document.getElementById("inp_ten_viec").value;
+            let phut = parseFloat(document.getElementById("inp_phut_dun").value) || 0;
+
+            if (trangThai.che_do === "dun_to") {
+                trangThai.t1_tich_luy += phut;
+            } else {
+                trangThai.t2_tich_luy += phut;
+            }
+
+            dsLichSu.unshift(`[${ten}] Viên #${trangThai.vien_stt} - ${trangThai.che_do === 'dun_to' ? 'To' : 'Nhỏ'}: ${phut} phút`);
+            capNhatGiaoDien();
+        }
+
+        function capNhatGiaoDien() {
+            // Cập nhật lịch sử
+            let htmlLS = "";
+            for (let item of dsLichSu) {
+                htmlLS += `<div class="history-item">${item}</div>`;
+            }
+            document.getElementById("div_lich_su").innerHTML = htmlLS || "<i>Chưa có dữ liệu lịch sử.</i>";
+
+            if (!trangThai.bat_dau_nhom) {
+                document.getElementById("lbl_canh_bao").innerText = "📌 Bếp chưa nhóm";
+                document.getElementById("lbl_tien_trinh").innerText = "0%";
+                document.getElementById("lbl_soi_tiep").innerText = "-- phút";
+                return;
+            }
+
+            let now = new Date();
+            let phutDaQua = (now - trangThai.bat_dau_nhom) / 60000;
+
+            if (phutDaQua < cauHinh.phut_nhom) {
+                let conLaiNhom = (cauHinh.phut_nhom - phutDaQua).toFixed(1);
+                document.getElementById("lbl_canh_bao").innerText = `🔥 Đang nhóm (Còn ${conLaiNhom} phút bén lửa)`;
+                return;
+            }
+
+            // Tính % tuổi thọ
+            let daDung = (trangThai.t1_tich_luy / cauHinh.vong_doi_to) + (trangThai.t2_tich_luy / cauHinh.vong_doi_nho);
+            let pct = (daDung * 100).toFixed(1);
+            document.getElementById("lbl_tien_trinh").innerText = `${pct}%`;
+
+            // Tính ấm sôi tiếp theo
+            let pSauAm = trangThai.che_do === "dun_to" ? cauHinh.phut_to_1 : cauHinh.phut_nho_1;
+            let tTichLuy = trangThai.che_do === "dun_to" ? trangThai.t1_tich_luy : trangThai.t2_tich_luy;
+            let phutConToiSoi = (pSauAm - (tTichLuy % pSauAm)).toFixed(0);
+            document.getElementById("lbl_soi_tiep").innerText = `${phutConToiSoi} phút`;
+
+            if (daDung >= 1) {
+                document.getElementById("lbl_canh_bao").innerText = "🚨 HẾT THAN! Cần thay viên mới ngay.";
+            } else if (daDung >= 0.85) {
+                document.getElementById("lbl_canh_bao").innerText = "⚠️ GẦN TÀN THAN (Còn dưới 15%)";
+            } else {
+                document.getElementById("lbl_canh_bao").innerText = "✅ Bếp hoạt động ổn định";
+            }
+        }
+
+        setInterval(capNhatGiaoDien, 5000);
+    </script>
+</body>
+</html>
